@@ -56,12 +56,33 @@ const ctx = canvas.getContext('2d');
 let metricChart = null;
 let sensitivityChart = null;
 
-// Mathematical Derivation Drawer Toggle
-const mathDrawer = document.getElementById('math-drawer');
-const mathDrawerHeader = document.getElementById('math-drawer-header');
-mathDrawerHeader.addEventListener('click', () => {
-    mathDrawer.classList.toggle('open');
-});
+// Tab Switching Logic
+function switchTab(tabId) {
+    // Hide all tab contents
+    document.getElementById('tab-content-charts').classList.remove('active');
+    document.getElementById('tab-content-math').classList.remove('active');
+    
+    // Deactivate all tab buttons
+    document.getElementById('tab-btn-charts').classList.remove('active');
+    document.getElementById('tab-btn-math').classList.remove('active');
+    
+    // Activate selected tab and button
+    document.getElementById(`tab-content-${tabId}`).classList.add('active');
+    document.getElementById(`tab-btn-${tabId}`).classList.add('active');
+    
+    // Resize/Update charts when returning to the charts tab
+    if (tabId === 'charts') {
+        if (metricChart) {
+            metricChart.resize();
+            metricChart.update('none');
+        }
+        if (sensitivityChart) {
+            sensitivityChart.resize();
+            sensitivityChart.update('none');
+        }
+    }
+}
+window.switchTab = switchTab;
 
 // Setup input listeners
 Object.keys(inputs).forEach(key => {
@@ -485,10 +506,19 @@ function drawGeometry(state) {
     ctx.stroke();
 
     ctx.fillStyle = '#FFF';
-    ctx.font = '10px Inter';
+    ctx.font = 'bold 10px Inter';
     ctx.textAlign = 'center';
-    ctx.fillText('Target A', tgtAx, tgtAy - 12);
-    ctx.fillText('Target B', tgtBx, tgtBy + 20);
+    ctx.textBaseline = 'middle';
+    
+    const labelOffset = 20;
+    const labelAx = zoomCenterX + (visualD / 2 + labelOffset) * Math.cos(state.alpha);
+    const labelAy = zoomCenterY - (visualD / 2 + labelOffset) * Math.sin(state.alpha);
+    const labelBx = zoomCenterX - (visualD / 2 + labelOffset) * Math.cos(state.alpha);
+    const labelBy = zoomCenterY + (visualD / 2 + labelOffset) * Math.sin(state.alpha);
+    
+    ctx.fillText('Target A', labelAx, labelAy);
+    ctx.fillText('Target B', labelBx, labelBy);
+    ctx.textBaseline = 'alphabetic';
 
     // Draw Zoom view velocity vector arrow at the center
     if (state.speed > 0) {
@@ -732,7 +762,17 @@ function updateUI(state) {
             );
         } catch (e) {
             console.error("KaTeX rendering error: ", e);
+            renderFallback();
         }
+    } else {
+        renderFallback();
+    }
+
+    function renderFallback() {
+        math.gr.innerHTML = `gR = [${state.gR[0].toFixed(4)}, ${state.gR[1].toFixed(4)}]`;
+        math.gf.innerHTML = `gf = [${state.gf[0].toFixed(4)}, ${state.gf[1].toFixed(4)}]`;
+        math.tensor.innerHTML = `M = [[${state.M[0][0].toFixed(4)}, ${state.M[0][1].toFixed(4)}],\n     [${state.M[1][0].toFixed(4)}, ${state.M[1][1].toFixed(4)}]]`;
+        math.eigen.innerHTML = `λ1 = ${state.lambda1.toFixed(4)}, λ2 = ${state.lambda2.toFixed(4)}\nd_min,any = ${state.d_min_any.toFixed(2)} m\nd_min,all = ${state.d_min_all.toFixed(2)} m`;
     }
 }
 

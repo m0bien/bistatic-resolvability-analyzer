@@ -8,7 +8,7 @@
     <!-- KaTeX for Beautiful Math -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true}], throwOnError: false});"></script>
     
     <!-- Chart.js for Plots -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -224,84 +224,77 @@
                     </div>
                 </div>
                 
-                <!-- Graph Card -->
-                <div class="display-card" style="min-height: 450px;">
-                    <div class="display-card-title">
-                        <span>Resolvability Metric &amp; Heading Sensitivity</span>
+                <!-- Right Card with Tabs -->
+                <div class="display-card" style="min-height: 480px; flex: 1; display: flex; flex-direction: column;">
+                    <div class="tabs-header">
+                        <button class="tab-btn active" id="tab-btn-charts" onclick="switchTab('charts')">Analysis Charts</button>
+                        <button class="tab-btn" id="tab-btn-math" onclick="switchTab('math')">Math &amp; Matrices</button>
                     </div>
-                    <!-- Two small tabs or stacked layouts -->
-                    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%;">
-                        <div class="chart-wrapper" style="height: 200px;">
+                    
+                    <!-- Charts Tab Content -->
+                    <div id="tab-content-charts" class="tab-content active" style="flex: 1; display: flex; flex-direction: column; gap: 16px; justify-content: center; height: 100%;">
+                        <div class="chart-wrapper" style="height: 180px; position: relative;">
                             <canvas id="metric-chart"></canvas>
                         </div>
-                        <div class="chart-wrapper" style="height: 200px;">
+                        <div class="chart-wrapper" style="height: 180px; position: relative;">
                             <canvas id="sensitivity-chart"></canvas>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Mathematical Derivation Expandable Drawer -->
-            <div class="math-drawer" id="math-drawer">
-                <div class="math-drawer-header" id="math-drawer-header">
-                    <div class="math-drawer-title">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
-                        Mathematical Derivation &amp; Live Matrices
-                    </div>
-                    <div class="math-drawer-toggle" id="math-drawer-toggle">▼</div>
-                </div>
-                <div class="math-drawer-content">
-                    <div class="math-block">
-                        <h3>1. Spatial Gradients</h3>
-                        <p>The bistatic range gradient vector \(\mathbf{g}_R\) is the sum of unit vectors pointing from transmitters to the target:</p>
-                        <div class="equation">
-                            \mathbf{g}_R = \nabla_{\mathbf{x}} R_b = \mathbf{u}_T + \mathbf{u}_R
-                        </div>
-                        <p>The Doppler frequency spatial gradient vector \(\mathbf{g}_f\) accounts for the rate of change of Doppler shift with spatial position:</p>
-                        <div class="equation">
-                            \mathbf{g}_f = \nabla_{\mathbf{x}} f_d = \frac{1}{\lambda} \left( \frac{\mathbf{I} - \mathbf{u}_T\mathbf{u}_T^T}{R_T} + \frac{\mathbf{I} - \mathbf{u}_R\mathbf{u}_R^T}{R_R} \right) \mathbf{v}
-                        </div>
-                        <div class="matrix-grid">
-                            <div class="matrix-card">
-                                <div class="matrix-card-title">Range Gradient \(\mathbf{g}_R\)</div>
-                                <div class="matrix-card-value" id="m-gr">-</div>
-                            </div>
-                            <div class="matrix-card">
-                                <div class="matrix-card-title">Doppler Gradient \(\mathbf{g}_f\)</div>
-                                <div class="matrix-card-value" id="m-gf">-</div>
-                            </div>
-                        </div>
-                    </div>
                     
-                    <div class="math-block">
-                        <h3>2. Resolution Metric Tensor \(\mathbf{M}\)</h3>
-                        <p>Combining range and Doppler sensitivities under the ellipse resolution model yields the metric tensor \(\mathbf{M}\):</p>
-                        <div class="equation">
-                            \mathbf{M} = \frac{\mathbf{g}_R \mathbf{g}_R^T}{\Delta R_{min}^2} + \frac{\mathbf{g}_f \mathbf{g}_f^T}{\Delta f_{d,min}^2}
-                        </div>
-                        <div class="matrix-grid">
-                            <div class="matrix-card">
-                                <div class="matrix-card-title">Metric Tensor \(\mathbf{M}\) (2x2)</div>
-                                <div class="matrix-card-value" id="m-tensor">-</div>
+                    <!-- Math Tab Content (Scrollable) -->
+                    <div id="tab-content-math" class="tab-content" style="flex: 1; overflow-y: auto; padding-right: 8px; max-height: 380px;">
+                        <div class="math-block">
+                            <h3>1. Spatial Gradients</h3>
+                            <p>The bistatic range gradient vector \(\mathbf{g}_R\) is the sum of unit vectors pointing from transmitters to the target:</p>
+                            <div class="equation">
+                                $$\mathbf{g}_R = \nabla_{\mathbf{x}} R_b = \mathbf{u}_T + \mathbf{u}_R$$
                             </div>
-                            <div class="matrix-card">
-                                <div class="matrix-card-title">Eigenvalues &amp; Bounds</div>
-                                <div class="matrix-card-value" id="m-eigen">-</div>
+                            <p>The Doppler frequency spatial gradient vector \(\mathbf{g}_f\) accounts for the rate of change of Doppler shift with spatial position:</p>
+                            <div class="equation">
+                                $$\mathbf{g}_f = \nabla_{\mathbf{x}} f_d = \frac{1}{\lambda} \left( \frac{\mathbf{I} - \mathbf{u}_T\mathbf{u}_T^T}{R_T} + \frac{\mathbf{I} - \mathbf{u}_R\mathbf{u}_R^T}{R_R} \right) \mathbf{v}$$
+                            </div>
+                            <div class="matrix-grid">
+                                <div class="matrix-card">
+                                    <div class="matrix-card-title">Range Gradient \(\mathbf{g}_R\)</div>
+                                    <div class="matrix-card-value" id="m-gr">-</div>
+                                </div>
+                                <div class="matrix-card">
+                                    <div class="matrix-card-title">Doppler Gradient \(\mathbf{g}_f\)</div>
+                                    <div class="matrix-card-value" id="m-gf">-</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                        
+                        <div class="math-block">
+                            <h3>2. Resolution Metric Tensor \(\mathbf{M}\)</h3>
+                            <p>Combining range and Doppler sensitivities under the ellipse resolution model yields the metric tensor \(\mathbf{M}\):</p>
+                            <div class="equation">
+                                $$\mathbf{M} = \frac{\mathbf{g}_R \mathbf{g}_R^T}{\Delta R_{min}^2} + \frac{\mathbf{g}_f \mathbf{g}_f^T}{\Delta f_{d,min}^2}$$
+                            </div>
+                            <div class="matrix-grid">
+                                <div class="matrix-card">
+                                    <div class="matrix-card-title">Metric Tensor \(\mathbf{M}\) (2x2)</div>
+                                    <div class="matrix-card-value" id="m-tensor">-</div>
+                                </div>
+                                <div class="matrix-card">
+                                    <div class="matrix-card-title">Eigenvalues &amp; Bounds</div>
+                                    <div class="matrix-card-value" id="m-eigen">-</div>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div class="math-block">
-                        <h3>3. Separation Boundary Solutions</h3>
-                        <p>Resolving condition is \(d^2 \mathbf{a}^T \mathbf{M} \mathbf{a} \ge c^2\), where \(\mathbf{a} = [\cos\alpha, \sin\alpha]^T\). We expand this into double-angle variables:</p>
-                        <div class="equation">
-                            \frac{M_{xx} + M_{yy}}{2} + \frac{M_{xx} - M_{yy}}{2}\cos(2\alpha) + M_{xy}\sin(2\alpha) = \frac{c^2}{d^2}
+                        <div class="math-block">
+                            <h3>3. Separation Boundary Solutions</h3>
+                            <p>Resolving condition is \(d^2 \mathbf{a}^T \mathbf{M} \mathbf{a} \ge c^2\), where \(\mathbf{a} = [\cos\alpha, \sin\alpha]^T\). We expand this into double-angle variables:</p>
+                            <div class="equation">
+                                $$\frac{M_{xx} + M_{yy}}{2} + \frac{M_{xx} - M_{yy}}{2}\cos(2\alpha) + M_{xy}\sin(2\alpha) = \frac{c^2}{d^2}$$
+                            </div>
+                            <p>Solving analytically for aspect separation angle \(\alpha\):</p>
+                            <div class="equation">
+                                $$\alpha_{crit} = \frac{\psi}{2} \pm \frac{1}{2} \arccos\left(\frac{c^2/d^2 - C_0}{D}\right) \pmod{\pi}$$
+                            </div>
+                            <p>where \(C_0 = \text{Tr}(\mathbf{M})/2\), \(D = \sqrt{(\frac{M_{xx}-M_{yy}}{2})^2 + M_{xy}^2}\), and \(\psi = \text{atan2}(M_{xy}, \frac{M_{xx}-M_{yy}}{2})\).</p>
                         </div>
-                        <p>Solving analytically for aspect separation angle \(\alpha\):</p>
-                        <div class="equation">
-                            \alpha_{crit} = \frac{\psi}{2} \pm \frac{1}{2} \arccos\left(\frac{c^2/d^2 - C_0}{D}\right) \pmod{\pi}
-                        </div>
-                        <p>where \(C_0 = \text{Tr}(\mathbf{M})/2\), \(D = \sqrt{(\frac{M_{xx}-M_{yy}}{2})^2 + M_{xy}^2}\), and \(\psi = \text{atan2}(M_{xy}, \frac{M_{xx}-M_{yy}}{2})\).</p>
                     </div>
                 </div>
             </div>
