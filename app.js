@@ -56,33 +56,7 @@ const ctx = canvas.getContext('2d');
 let metricChart = null;
 let sensitivityChart = null;
 
-// Tab Switching Logic
-function switchTab(tabId) {
-    // Hide all tab contents
-    document.getElementById('tab-content-charts').classList.remove('active');
-    document.getElementById('tab-content-math').classList.remove('active');
-    
-    // Deactivate all tab buttons
-    document.getElementById('tab-btn-charts').classList.remove('active');
-    document.getElementById('tab-btn-math').classList.remove('active');
-    
-    // Activate selected tab and button
-    document.getElementById(`tab-content-${tabId}`).classList.add('active');
-    document.getElementById(`tab-btn-${tabId}`).classList.add('active');
-    
-    // Resize/Update charts when returning to the charts tab
-    if (tabId === 'charts') {
-        if (metricChart) {
-            metricChart.resize();
-            metricChart.update('none');
-        }
-        if (sensitivityChart) {
-            sensitivityChart.resize();
-            sensitivityChart.update('none');
-        }
-    }
-}
-window.switchTab = switchTab;
+
 
 // Setup input listeners
 Object.keys(inputs).forEach(key => {

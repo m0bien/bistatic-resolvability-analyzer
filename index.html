@@ -224,36 +224,33 @@
                     </div>
                 </div>
                 
-                <!-- Right Card with Tabs -->
-                <div class="display-card" style="min-height: 480px; flex: 1; display: flex; flex-direction: column;">
-                    <div class="tabs-header">
-                        <button class="tab-btn active" id="tab-btn-charts" onclick="switchTab('charts')">Analysis Charts</button>
-                        <button class="tab-btn" id="tab-btn-math" onclick="switchTab('math')">Math &amp; Matrices</button>
+                <!-- Graph Card (Stable Charts) -->
+                <div class="display-card" style="min-height: 420px; display: flex; flex-direction: column;">
+                    <div class="display-card-title">
+                        <span>Resolvability Metric &amp; Heading Sensitivity</span>
                     </div>
-                    
-                    <!-- Charts Tab Content -->
-                    <div id="tab-content-charts" class="tab-content active" style="flex: 1; display: flex; flex-direction: column; gap: 16px; justify-content: center; height: 100%;">
-                        <div class="chart-wrapper" style="height: 180px; position: relative;">
+                    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%; justify-content: center;">
+                        <div class="chart-wrapper" style="height: 170px; position: relative;">
                             <canvas id="metric-chart"></canvas>
                         </div>
-                        <div class="chart-wrapper" style="height: 180px; position: relative;">
+                        <div class="chart-wrapper" style="height: 170px; position: relative;">
                             <canvas id="sensitivity-chart"></canvas>
                         </div>
                     </div>
-                    
-                    <!-- Math Tab Content (Scrollable) -->
-                    <div id="tab-content-math" class="tab-content" style="flex: 1; overflow-y: auto; padding-right: 8px; max-height: 380px;">
+                </div>
+            </div>
+            
+            <!-- Dedicated Math & Matrices Panel -->
+            <div class="display-card" style="min-height: 280px; height: 280px; display: flex; flex-direction: column; gap: 12px;">
+                <div class="display-card-title" style="color: var(--accent-cyan); border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                    <span>Mathematical Derivation &amp; Live Tensors</span>
+                </div>
+                <div style="flex: 1; display: flex; gap: 24px; overflow: hidden;">
+                    <!-- Left: Live Matrices (40%) -->
+                    <div style="flex: 0 0 38%; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; border-right: 1px solid var(--border-color); padding-right: 20px;">
                         <div class="math-block">
-                            <h3>1. Spatial Gradients</h3>
-                            <p>The bistatic range gradient vector \(\mathbf{g}_R\) is the sum of unit vectors pointing from transmitters to the target:</p>
-                            <div class="equation">
-                                $$\mathbf{g}_R = \nabla_{\mathbf{x}} R_b = \mathbf{u}_T + \mathbf{u}_R$$
-                            </div>
-                            <p>The Doppler frequency spatial gradient vector \(\mathbf{g}_f\) accounts for the rate of change of Doppler shift with spatial position:</p>
-                            <div class="equation">
-                                $$\mathbf{g}_f = \nabla_{\mathbf{x}} f_d = \frac{1}{\lambda} \left( \frac{\mathbf{I} - \mathbf{u}_T\mathbf{u}_T^T}{R_T} + \frac{\mathbf{I} - \mathbf{u}_R\mathbf{u}_R^T}{R_R} \right) \mathbf{v}$$
-                            </div>
-                            <div class="matrix-grid">
+                            <h4 style="font-family: 'Outfit', sans-serif; font-size: 0.85rem; color: var(--accent-violet); text-transform: uppercase; margin-bottom: 8px;">1. Gradients</h4>
+                            <div class="matrix-grid" style="display: flex; flex-direction: column; gap: 12px;">
                                 <div class="matrix-card">
                                     <div class="matrix-card-title">Range Gradient \(\mathbf{g}_R\)</div>
                                     <div class="matrix-card-value" id="m-gr">-</div>
@@ -264,22 +261,40 @@
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="math-block">
-                            <h3>2. Resolution Metric Tensor \(\mathbf{M}\)</h3>
-                            <p>Combining range and Doppler sensitivities under the ellipse resolution model yields the metric tensor \(\mathbf{M}\):</p>
-                            <div class="equation">
-                                $$\mathbf{M} = \frac{\mathbf{g}_R \mathbf{g}_R^T}{\Delta R_{min}^2} + \frac{\mathbf{g}_f \mathbf{g}_f^T}{\Delta f_{d,min}^2}$$
-                            </div>
-                            <div class="matrix-grid">
+                            <h4 style="font-family: 'Outfit', sans-serif; font-size: 0.85rem; color: var(--accent-violet); text-transform: uppercase; margin-bottom: 8px;">2. Resolution Tensor &amp; Bounds</h4>
+                            <div class="matrix-grid" style="display: flex; flex-direction: column; gap: 12px;">
                                 <div class="matrix-card">
-                                    <div class="matrix-card-title">Metric Tensor \(\mathbf{M}\) (2x2)</div>
+                                    <div class="matrix-card-title">Metric Tensor \(\mathbf{M}\)</div>
                                     <div class="matrix-card-value" id="m-tensor">-</div>
                                 </div>
                                 <div class="matrix-card">
                                     <div class="matrix-card-title">Eigenvalues &amp; Bounds</div>
                                     <div class="matrix-card-value" id="m-eigen">-</div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right: LaTeX Derivation (60%) -->
+                    <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
+                        <div class="math-block">
+                            <h3>1. Spatial Gradients</h3>
+                            <p>The bistatic range gradient vector \(\mathbf{g}_R\) is the sum of unit vectors pointing from transmitters to the target:</p>
+                            <div class="equation">
+                                $$\mathbf{g}_R = \nabla_{\mathbf{x}} R_b = \mathbf{u}_T + \mathbf{u}_R$$
+                            </div>
+                            <p>The Doppler frequency spatial gradient vector \(\mathbf{g}_f\) accounts for the rate of change of Doppler shift with spatial position:</p>
+                            <div class="equation">
+                                $$\mathbf{g}_f = \nabla_{\mathbf{x}} f_d = \frac{1}{\lambda} \left( \frac{\mathbf{I} - \mathbf{u}_T\mathbf{u}_T^T}{R_T} + \frac{\mathbf{I} - \mathbf{u}_R\mathbf{u}_R^T}{R_R} \right) \mathbf{v}$$
+                            </div>
+                        </div>
+                        
+                        <div class="math-block">
+                            <h3>2. Resolution Metric Tensor \(\mathbf{M}\)</h3>
+                            <p>Combining range and Doppler sensitivities under the ellipse resolution model yields the metric tensor \(\mathbf{M}\):</p>
+                            <div class="equation">
+                                $$\mathbf{M} = \frac{\mathbf{g}_R \mathbf{g}_R^T}{\Delta R_{min}^2} + \frac{\mathbf{g}_f \mathbf{g}_f^T}{\Delta f_{d,min}^2}$$
                             </div>
                         </div>
 
