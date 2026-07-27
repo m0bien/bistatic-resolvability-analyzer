@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bistatic Target Resolvability Analyzer</title>
+    
+    <!-- KaTeX for Beautiful Math -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+    
+    <!-- Chart.js for Plots -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Global JS Error Banner for Debugging -->
+    <div id="error-banner" style="display:none; background:#EF4444; color:#FFF; padding:16px; font-family:monospace; font-size:0.9rem; font-weight:bold; position:fixed; top:0; left:0; right:0; z-index:99999; border-bottom:3px solid #FFF; box-shadow:0 4px 20px rgba(0,0,0,0.5);"></div>
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            var banner = document.getElementById('error-banner');
+            if (banner) {
+                banner.style.display = 'block';
+                banner.innerHTML = '❌ JavaScript Error: ' + msg + '<br><small>Location: ' + url + ' (Line ' + line + ', Col ' + col + ')</small>';
+            }
+            return false;
+        };
+    </script>
+
+    <div class="app-container">
+        <!-- Sidebar Controls -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Bistatic Resolvability</h1>
+                <p>Aspect Angle &amp; Sensitivity Analysis</p>
+            </div>
+            
+            <div class="sidebar-content">
+                <!-- System Parameters -->
+                <div class="control-group">
+                    <div class="control-group-title">System Configuration</div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Carrier Frequency (fc)</span>
+                            <span class="value" id="fc-val">500 MHz</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="fc" min="50" max="1000" step="10" value="500">
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Range Resolution (&Delta;R_min)</span>
+                            <span class="value" id="dr-val">500.0 m</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="dr" min="100" max="3000" step="50" value="500">
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Doppler Resolution (&Delta;fd_min)</span>
+                            <span class="value" id="df-val">20.0 Hz</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="df" min="1" max="100" step="1" value="20">
+                        </div>
+                    </div>
+
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Resolvability Threshold (c)</span>
+                            <span class="value" id="c-val">1.0</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="c" min="0.5" max="3" step="0.1" value="1">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Target Dynamics -->
+                <div class="control-group">
+                    <div class="control-group-title">Target Dynamics</div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Target Speed (v)</span>
+                            <span class="value" id="speed-val">150 m/s</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="speed" min="0" max="600" step="10" value="150">
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Target Heading (&phi;)</span>
+                            <span class="value" id="heading-val">45&deg;</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="heading" min="0" max="360" step="5" value="45">
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Target Separation (d)</span>
+                            <span class="value" id="separation-val">1000.0 m</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="separation" min="10" max="5000" step="50" value="1000">
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Separation Angle (&alpha;)</span>
+                            <span class="value" id="alpha-val">30&deg;</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="alpha" min="0" max="360" step="5" value="30">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Radar Geometry -->
+                <div class="control-group">
+                    <div class="control-group-title">Radar Geometry (m)</div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Tx Position (x_Tx, y_Tx)</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="tx-x" value="-10000">
+                            <input type="number" id="tx-y" value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Rx Position (x_Rx, y_Rx)</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="rx-x" value="10000">
+                            <input type="number" id="rx-y" value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Bistatic Range (Rb)</span>
+                            <span class="value" id="rb-val">36.1 km</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="rb" min="20100" max="80000" step="100" value="36055">
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Ellipse Angle (&theta;<sub>rx</sub>)</span>
+                            <span class="value" id="tgt-angle-val">123.7&deg;</span>
+                        </div>
+                        <div class="input-slider-wrapper">
+                            <input type="range" id="tgt-angle" min="0" max="360" step="1" value="124">
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <div class="input-header">
+                            <span>Calculated Target (x0, y0)</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; font-family: monospace; font-size: 0.85rem; color: var(--accent-cyan);">
+                            <span id="calc-tgt-x">0 m</span>, <span id="calc-tgt-y">15000 m</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Stats Banner -->
+            <div class="stats-banner">
+                <div class="stat-card resolved-status" id="status-card">
+                    <span class="stat-label">Resolvability Status</span>
+                    <div class="stat-value" id="resolvability-status">Resolving...</div>
+                    <span class="stat-subtext" id="resolvability-subtext">Calculating boundary parameters</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Critical Angles (&alpha;<sub>crit</sub>)</span>
+                    <div class="stat-value" id="critical-angles-val">-</div>
+                    <span class="stat-subtext">Orientation zones transition</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Wavelength (&lambda;)</span>
+                    <div class="stat-value" id="wavelength-val">0.0300 m</div>
+                    <span class="stat-subtext">Speed of light / fc</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Min Resolvable d (Any &alpha;)</span>
+                    <div class="stat-value" id="dmin-any-val">-</div>
+                    <span class="stat-subtext">Optimal aspect angle</span>
+                </div>
+            </div>
+            
+            <!-- Visualizers -->
+            <div class="visualizer-grid">
+                <!-- Geometry Canvas Card -->
+                <div class="display-card">
+                    <div class="display-card-title">
+                        <span>Bistatic Radar Geometry &amp; Target Separation Zoom</span>
+                        <span id="geometry-badge" class="badge">Dynamic Scale</span>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="geometry-canvas"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graph Card -->
+                <div class="display-card" style="min-height: 450px;">
+                    <div class="display-card-title">
+                        <span>Resolvability Metric &amp; Heading Sensitivity</span>
+                    </div>
+                    <!-- Two small tabs or stacked layouts -->
+                    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%;">
+                        <div class="chart-wrapper" style="height: 200px;">
+                            <canvas id="metric-chart"></canvas>
+                        </div>
+                        <div class="chart-wrapper" style="height: 200px;">
+                            <canvas id="sensitivity-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mathematical Derivation Expandable Drawer -->
+            <div class="math-drawer" id="math-drawer">
+                <div class="math-drawer-header" id="math-drawer-header">
+                    <div class="math-drawer-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
+                        Mathematical Derivation &amp; Live Matrices
+                    </div>
+                    <div class="math-drawer-toggle" id="math-drawer-toggle">▼</div>
+                </div>
+                <div class="math-drawer-content">
+                    <div class="math-block">
+                        <h3>1. Spatial Gradients</h3>
+                        <p>The bistatic range gradient vector \(\mathbf{g}_R\) is the sum of unit vectors pointing from transmitters to the target:</p>
+                        <div class="equation">
+                            \mathbf{g}_R = \nabla_{\mathbf{x}} R_b = \mathbf{u}_T + \mathbf{u}_R
+                        </div>
+                        <p>The Doppler frequency spatial gradient vector \(\mathbf{g}_f\) accounts for the rate of change of Doppler shift with spatial position:</p>
+                        <div class="equation">
+                            \mathbf{g}_f = \nabla_{\mathbf{x}} f_d = \frac{1}{\lambda} \left( \frac{\mathbf{I} - \mathbf{u}_T\mathbf{u}_T^T}{R_T} + \frac{\mathbf{I} - \mathbf{u}_R\mathbf{u}_R^T}{R_R} \right) \mathbf{v}
+                        </div>
+                        <div class="matrix-grid">
+                            <div class="matrix-card">
+                                <div class="matrix-card-title">Range Gradient \(\mathbf{g}_R\)</div>
+                                <div class="matrix-card-value" id="m-gr">-</div>
+                            </div>
+                            <div class="matrix-card">
+                                <div class="matrix-card-title">Doppler Gradient \(\mathbf{g}_f\)</div>
+                                <div class="matrix-card-value" id="m-gf">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="math-block">
+                        <h3>2. Resolution Metric Tensor \(\mathbf{M}\)</h3>
+                        <p>Combining range and Doppler sensitivities under the ellipse resolution model yields the metric tensor \(\mathbf{M}\):</p>
+                        <div class="equation">
+                            \mathbf{M} = \frac{\mathbf{g}_R \mathbf{g}_R^T}{\Delta R_{min}^2} + \frac{\mathbf{g}_f \mathbf{g}_f^T}{\Delta f_{d,min}^2}
+                        </div>
+                        <div class="matrix-grid">
+                            <div class="matrix-card">
+                                <div class="matrix-card-title">Metric Tensor \(\mathbf{M}\) (2x2)</div>
+                                <div class="matrix-card-value" id="m-tensor">-</div>
+                            </div>
+                            <div class="matrix-card">
+                                <div class="matrix-card-title">Eigenvalues &amp; Bounds</div>
+                                <div class="matrix-card-value" id="m-eigen">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="math-block">
+                        <h3>3. Separation Boundary Solutions</h3>
+                        <p>Resolving condition is \(d^2 \mathbf{a}^T \mathbf{M} \mathbf{a} \ge c^2\), where \(\mathbf{a} = [\cos\alpha, \sin\alpha]^T\). We expand this into double-angle variables:</p>
+                        <div class="equation">
+                            \frac{M_{xx} + M_{yy}}{2} + \frac{M_{xx} - M_{yy}}{2}\cos(2\alpha) + M_{xy}\sin(2\alpha) = \frac{c^2}{d^2}
+                        </div>
+                        <p>Solving analytically for aspect separation angle \(\alpha\):</p>
+                        <div class="equation">
+                            \alpha_{crit} = \frac{\psi}{2} \pm \frac{1}{2} \arccos\left(\frac{c^2/d^2 - C_0}{D}\right) \pmod{\pi}
+                        </div>
+                        <p>where \(C_0 = \text{Tr}(\mathbf{M})/2\), \(D = \sqrt{(\frac{M_{xx}-M_{yy}}{2})^2 + M_{xy}^2}\), and \(\psi = \text{atan2}(M_{xy}, \frac{M_{xx}-M_{yy}}{2})\).</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Script Engine -->
+    <script src="app.js"></script>
+</body>
+</html>
