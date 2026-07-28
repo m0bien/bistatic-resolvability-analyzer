@@ -22,11 +22,13 @@ For a target located at position $\mathbf{x} = [x, y]^T$, the bistatic range is 
 $$R_b(\mathbf{x}) = \|\mathbf{x} - \mathbf{x}_T\| + \|\mathbf{x} - \mathbf{x}_R\| = R_T + R_R$$
 
 The spatial gradient of $R_b$ with respect to $\mathbf{x}$ is:
+
 $$\mathbf{g}_R = \nabla_{\mathbf{x}} R_b = \frac{\mathbf{x} - \mathbf{x}_T}{\|\mathbf{x} - \mathbf{x}_T\|} + \frac{\mathbf{x} - \mathbf{x}_R}{\|\mathbf{x} - \mathbf{x}_R\|} = \mathbf{u}_T + \mathbf{u}_R$$
 
 where $\mathbf{u}_T$ and $\mathbf{u}_R$ are unit vectors pointing from Tx to target, and Rx to target respectively. 
 
 The range separation $\delta R_b$ for a small displacement vector $\boldsymbol{\Delta x}$ is given by the projection:
+
 $$\delta R_b \approx \mathbf{g}_R^T \boldsymbol{\Delta x} = (\mathbf{u}_T + \mathbf{u}_R)^T \boldsymbol{\Delta x}$$
 
 ---
@@ -36,12 +38,15 @@ The bistatic Doppler shift for a target moving with velocity $\mathbf{v}$ is:
 $$f_d(\mathbf{x}) = \frac{1}{\lambda} \mathbf{v}^T (\mathbf{u}_T + \mathbf{u}_R)$$
 
 Since both targets share the exact same velocity vector $\mathbf{v}$, the difference in Doppler shift $\delta f_d$ arises purely from the spatial offset $\boldsymbol{\Delta x}$, which alters the unit vectors $\mathbf{u}_T$ and $\mathbf{u}_R$:
+
 $$\delta f_d \approx \nabla_{\mathbf{x}} f_d^T \boldsymbol{\Delta x} = \mathbf{g}_f^T \boldsymbol{\Delta x}$$
 
 To compute the Doppler gradient vector $\mathbf{g}_f$:
+
 $$\mathbf{g}_f = \nabla_{\mathbf{x}} f_d = \frac{1}{\lambda} \nabla_{\mathbf{x}} \left[ \mathbf{v}^T (\mathbf{u}_T + \mathbf{u}_R) \right]$$
 
 Using the spatial gradient of a unit vector $\mathbf{u} = \frac{\mathbf{r}}{r}$:
+
 $$\nabla_{\mathbf{x}} \mathbf{u} = \frac{1}{r} (\mathbf{I} - \mathbf{u}\mathbf{u}^T)$$
 
 We obtain the Doppler gradient:
@@ -51,13 +56,17 @@ $$\mathbf{g}_f = \frac{1}{\lambda} \left[ \frac{\mathbf{I} - \mathbf{u}_T\mathbf
 
 ### C. Resolution Metric Tensor ($\mathbf{M}$)
 We model the Range-Doppler map resolution bin boundaries as an ellipse. The two targets are resolvable if their normalized distance on the Range-Doppler plane exceeds a strict threshold factor $c$:
+
 $$\left( \frac{\delta R_b}{\Delta R_{min}} \right)^2 + \left( \frac{\delta f_d}{\Delta f_{d,min}} \right)^2 \ge c^2$$
 
 Substituting $\delta R_b = \mathbf{g}_R^T \boldsymbol{\Delta x}$ and $\delta f_d = \mathbf{g}_f^T \boldsymbol{\Delta x}$:
+
 $$\left( \frac{\mathbf{g}_R^T \boldsymbol{\Delta x}}{\Delta R_{min}} \right)^2 + \left( \frac{\mathbf{g}_f^T \boldsymbol{\Delta x}}{\Delta f_{d,min}} \right)^2 \ge c^2$$
+
 $$\boldsymbol{\Delta x}^T \left[ \frac{\mathbf{g}_R \mathbf{g}_R^T}{\Delta R_{min}^2} + \frac{\mathbf{g}_f \mathbf{g}_f^T}{\Delta f_{d,min}^2} \right] \boldsymbol{\Delta x} \ge c^2$$
 
 Defining the symmetric, positive semi-definite **Resolution Metric Tensor $\mathbf{M}$**:
+
 $$\mathbf{M} = \frac{\mathbf{g}_R \mathbf{g}_R^T}{\Delta R_{min}^2} + \frac{\mathbf{g}_f \mathbf{g}_f^T}{\Delta f_{d,min}^2} = \begin{bmatrix} M_{xx} & M_{xy} \\ M_{xy} & M_{yy} \end{bmatrix}$$
 
 We can express the resolvability condition in quadratic form:
