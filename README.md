@@ -128,4 +128,4 @@ The minimum eigenvalue $\lambda_2$ represents the "weakest" axis of resolution. 
    ```bash
    python -m http.server 8080 --bind 127.0.0.1
    ```
-3. Open your web browser and navigate to: [http://localhost:8080](http://localhost:8080)
+3. Open your web browser and navigate to: [Resolvability page](https://m0bien.github.io/bistatic-resolvability-analyzer/)
