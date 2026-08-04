@@ -512,12 +512,17 @@ canvas {
 
 .tab-content {
     display: none;
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
 }
 
 .tab-content.active {
-    display: block;
+    display: flex;
 }
 
 #tab-content-charts.tab-content.active {
     display: flex;
+    gap: 16px;
+    justify-content: center;
 }

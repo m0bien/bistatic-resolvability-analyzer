@@ -46,20 +46,20 @@
                     <div class="input-field">
                         <div class="input-header">
                             <span>Carrier Frequency (fc)</span>
-                            <span class="value" id="fc-val">500 MHz</span>
+                            <span class="value" id="fc-val">100 MHz</span>
                         </div>
                         <div class="input-slider-wrapper">
-                            <input type="range" id="fc" min="50" max="1000" step="10" value="500">
+                            <input type="range" id="fc" min="50" max="1000" step="10" value="100">
                         </div>
                     </div>
                     
                     <div class="input-field">
                         <div class="input-header">
                             <span>Range Resolution (&Delta;R_min)</span>
-                            <span class="value" id="dr-val">500.0 m</span>
+                            <span class="value" id="dr-val">1500.0 m</span>
                         </div>
                         <div class="input-slider-wrapper">
-                            <input type="range" id="dr" min="100" max="3000" step="50" value="500">
+                            <input type="range" id="dr" min="100" max="3000" step="50" value="1500">
                         </div>
                     </div>
                     
@@ -224,12 +224,36 @@
                     </div>
                 </div>
                 
-                <!-- Graph Card (Stable Charts) -->
-                <div class="display-card" style="min-height: 420px; display: flex; flex-direction: column;">
-                    <div class="display-card-title">
-                        <span>Resolvability Metric &amp; Heading Sensitivity</span>
+                <!-- Right Tabbed Card -->
+                <div class="display-card" style="min-height: 480px; display: flex; flex-direction: column;">
+                    <div class="tabs-header" style="margin-bottom: 16px;">
+                        <button class="tab-btn active" id="tab-btn-rd" onclick="switchTab('rd')">Range-Doppler Map</button>
+                        <button class="tab-btn" id="tab-btn-charts" onclick="switchTab('charts')">Analysis Charts</button>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%; justify-content: center;">
+                    
+                    <!-- Tab 1: Range-Doppler Map (Active) -->
+                    <div id="tab-content-rd" class="tab-content active">
+                        <div class="canvas-wrapper" style="flex: 1; min-height: 250px;">
+                            <canvas id="rd-canvas"></canvas>
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); font-family: monospace; font-size: 0.8rem; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px;">
+                            <div>
+                                <span style="color: var(--text-muted);">Exact &Delta;Rb:</span> 
+                                <span id="rd-val-dr" style="color: var(--accent-cyan); font-weight: bold;">-</span>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted);">Exact &Delta;fd:</span> 
+                                <span id="rd-val-df" style="color: var(--accent-cyan); font-weight: bold;">-</span>
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <span style="color: var(--text-muted);">Separability (Exact vs Grad):</span> 
+                                <span id="rd-val-sep" style="font-weight: bold;">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab 2: Analysis Charts -->
+                    <div id="tab-content-charts" class="tab-content">
                         <div class="chart-wrapper" style="height: 170px; position: relative;">
                             <canvas id="metric-chart"></canvas>
                         </div>

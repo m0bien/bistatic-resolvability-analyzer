@@ -52,9 +52,45 @@ const math = {
 const canvas = document.getElementById('geometry-canvas');
 const ctx = canvas.getContext('2d');
 
+const rdCanvas = document.getElementById('rd-canvas');
+const rdCtx = rdCanvas ? rdCanvas.getContext('2d') : null;
+
 // Chart Setup
 let metricChart = null;
 let sensitivityChart = null;
+
+// Tab Switching Logic
+function switchTab(tabId) {
+    document.getElementById('tab-content-rd').classList.remove('active');
+    document.getElementById('tab-content-charts').classList.remove('active');
+    document.getElementById('tab-btn-rd').classList.remove('active');
+    document.getElementById('tab-btn-charts').classList.remove('active');
+    
+    document.getElementById(`tab-content-${tabId}`).classList.add('active');
+    document.getElementById(`tab-btn-${tabId}`).classList.add('active');
+    
+    // Wait for the browser to complete layout reflow (display block/none toggles)
+    // before reading canvas client boundaries and rendering. This prevents 
+    // asynchronous height-shift canvas stretching.
+    requestAnimationFrame(() => {
+        const state = computeState();
+        if (tabId === 'rd') {
+            drawRangeDopplerMap(state);
+        } else if (tabId === 'charts') {
+            if (metricChart) {
+                metricChart.resize();
+                metricChart.update('none');
+            }
+            if (sensitivityChart) {
+                sensitivityChart.resize();
+                sensitivityChart.update('none');
+            }
+        }
+        // Always redraw the left-side geometry canvas to adapt to the final right column height
+        drawGeometry(state);
+    });
+}
+window.switchTab = switchTab;
 
 
 
@@ -230,7 +266,7 @@ function computeState(overrideHeadingDeg = null) {
     }
 
     return {
-        tx, rx, tgt, speed, phi, v, d, alpha, c, lambda,
+        tx, rx, tgt, speed, phi, v, d, alpha, c, lambda, dR_min, df_min,
         rT, RT, uT, rR, RR, uR, beta,
         gR, gf, M, C0, Cc, Cs, D, psi,
         lambda1, lambda2, d_min_any, d_min_all,
@@ -286,7 +322,7 @@ function drawGeometry(state) {
     // Scaling factors (keeping aspect ratio 1:1)
     const scaleX = (globalWidth - padding * 2) / dataW;
     const scaleY = (globalHeight - padding * 2) / dataH;
-    const scaleGlobal = Math.min(scaleX, scaleY);
+    const scaleGlobal = Math.max(0.001, Math.min(scaleX, scaleY));
 
     const toGlobal = (pt) => {
         return [
@@ -750,10 +786,250 @@ function updateUI(state) {
     }
 }
 
+// Render the actual target plots in Range-Doppler signal space
+function drawRangeDopplerMap(state) {
+    if (!rdCanvas || !rdCtx) return;
+    
+    const dpr = window.devicePixelRatio || 1;
+    const rect = rdCanvas.parentElement.getBoundingClientRect();
+    rdCanvas.width = rect.width * dpr;
+    rdCanvas.height = rect.height * dpr;
+    rdCtx.scale(dpr, dpr);
+    
+    const w = rect.width;
+    const h = rect.height;
+    
+    // Background clear
+    rdCtx.fillStyle = '#0f172a';
+    rdCtx.fillRect(0, 0, w, h);
+    
+    const d = state.d;
+    const alpha = state.alpha;
+    const tgt0 = state.tgt;
+    
+    // Target A: +d/2 along separation axis
+    const tgtA = [
+        tgt0[0] + (d / 2) * Math.cos(alpha),
+        tgt0[1] + (d / 2) * Math.sin(alpha)
+    ];
+    
+    // Target B: -d/2 along separation axis
+    const tgtB = [
+        tgt0[0] - (d / 2) * Math.cos(alpha),
+        tgt0[1] - (d / 2) * Math.sin(alpha)
+    ];
+    
+    const tx = state.tx;
+    const rx = state.rx;
+    
+    // Target A range, unit vectors and Doppler shift
+    const rT_A = Math.hypot(tgtA[0] - tx[0], tgtA[1] - tx[1]);
+    const rR_A = Math.hypot(tgtA[0] - rx[0], tgtA[1] - rx[1]);
+    const Rb_A = rT_A + rR_A;
+    const uT_A = [(tgtA[0] - tx[0]) / rT_A, (tgtA[1] - tx[1]) / rT_A];
+    const uR_A = [(tgtA[0] - rx[0]) / rR_A, (tgtA[1] - rx[1]) / rR_A];
+    const fd_A = (1 / state.lambda) * (state.v[0] * (uT_A[0] + uR_A[0]) + state.v[1] * (uT_A[1] + uR_A[1]));
+    
+    // Target B range, unit vectors and Doppler shift
+    const rT_B = Math.hypot(tgtB[0] - tx[0], tgtB[1] - tx[1]);
+    const rR_B = Math.hypot(tgtB[0] - rx[0], tgtB[1] - rx[1]);
+    const Rb_B = rT_B + rR_B;
+    const uT_B = [(tgtB[0] - tx[0]) / rT_B, (tgtB[1] - tx[1]) / rT_B];
+    const uR_B = [(tgtB[0] - rx[0]) / rR_B, (tgtB[1] - rx[1]) / rR_B];
+    const fd_B = (1 / state.lambda) * (state.v[0] * (uT_B[0] + uR_B[0]) + state.v[1] * (uT_B[1] + uR_B[1]));
+    
+    const Rb_mid = (Rb_A + Rb_B) / 2;
+    const fd_mid = (fd_A + fd_B) / 2;
+    
+    const deltaRb = Rb_A - Rb_B;
+    const deltafd = fd_A - fd_B;
+    
+    const dR_min = state.dR_min;
+    const df_min = state.df_min;
+    
+    const maxRangeDiff = Math.abs(deltaRb);
+    const maxDopplerDiff = Math.abs(deltafd);
+    
+    // Scale viewports
+    const rangeSpan = Math.max(1.8 * dR_min, 1.5 * maxRangeDiff);
+    const dopplerSpan = Math.max(1.8 * df_min, 1.5 * maxDopplerDiff);
+    
+    const padLeft = 55;
+    const padRight = 20;
+    const padTop = 30;
+    const padBottom = 40;
+    
+    const graphW = w - padLeft - padRight;
+    const graphH = h - padTop - padBottom;
+    
+    function getXPixel(rangeVal) {
+        const offset = rangeVal - Rb_mid;
+        return padLeft + graphW / 2 + (offset / rangeSpan) * graphW;
+    }
+    
+    function getYPixel(dopplerVal) {
+        const offset = dopplerVal - fd_mid;
+        return padTop + graphH / 2 - (offset / dopplerSpan) * graphH;
+    }
+    
+    // 1. Grid lines
+    rdCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    rdCtx.lineWidth = 1;
+    
+    // Range ticks
+    const numRangeTicks = 5;
+    rdCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    rdCtx.font = '9px monospace';
+    rdCtx.textAlign = 'center';
+    rdCtx.textBaseline = 'top';
+    
+    for (let i = 0; i < numRangeTicks; i++) {
+        const fraction = (i / (numRangeTicks - 1)) - 0.5;
+        const rVal = Rb_mid + fraction * rangeSpan;
+        const px = getXPixel(rVal);
+        
+        rdCtx.beginPath();
+        rdCtx.moveTo(px, padTop);
+        rdCtx.lineTo(px, padTop + graphH);
+        rdCtx.stroke();
+        
+        const relOffset = fraction * rangeSpan;
+        rdCtx.fillText(`${relOffset >= 0 ? '+' : ''}${Math.round(relOffset)}m`, px, padTop + graphH + 4);
+    }
+    
+    // Doppler ticks
+    const numDopplerTicks = 5;
+    rdCtx.textAlign = 'right';
+    rdCtx.textBaseline = 'middle';
+    
+    for (let i = 0; i < numDopplerTicks; i++) {
+        const fraction = (i / (numDopplerTicks - 1)) - 0.5;
+        const fVal = fd_mid + fraction * dopplerSpan;
+        const py = getYPixel(fVal);
+        
+        rdCtx.beginPath();
+        rdCtx.moveTo(padLeft, py);
+        rdCtx.lineTo(padLeft + graphW, py);
+        rdCtx.stroke();
+        
+        const relOffset = fraction * dopplerSpan;
+        rdCtx.fillText(`${relOffset >= 0 ? '+' : ''}${relOffset.toFixed(1)}Hz`, padLeft - 6, py);
+    }
+    
+    // 2. Axis titles
+    rdCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    rdCtx.font = 'bold 9px Inter';
+    rdCtx.textAlign = 'center';
+    rdCtx.fillText('Bistatic Range Offset (m)', padLeft + graphW / 2, padTop + graphH + 22);
+    
+    rdCtx.save();
+    rdCtx.translate(14, padTop + graphH / 2);
+    rdCtx.rotate(-Math.PI / 2);
+    rdCtx.fillText('Doppler Frequency Offset (Hz)', 0, 0);
+    rdCtx.restore();
+    
+    // Graph boundary box
+    rdCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    rdCtx.lineWidth = 1;
+    rdCtx.strokeRect(padLeft, padTop, graphW, graphH);
+    
+    // Clip target drawings inside graph box
+    rdCtx.save();
+    rdCtx.beginPath();
+    rdCtx.rect(padLeft, padTop, graphW, graphH);
+    rdCtx.clip();
+    
+    // Separability exact calculation check: (deltaRb / dR_min)^2 + (deltafd / df_min)^2 >= c^2
+    const normDistA = Math.pow((Rb_B - Rb_A) / dR_min, 2) + Math.pow((fd_B - fd_A) / df_min, 2);
+    const isExactResolved = normDistA >= Math.pow(state.c, 2);
+    
+    const cellFill = isExactResolved ? 'rgba(16, 185, 129, 0.04)' : 'rgba(239, 68, 68, 0.04)';
+    const cellStroke = isExactResolved ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)';
+    
+    // Pixel radii for the ellipses
+    const rx_pixels = Math.max(0.1, (dR_min / rangeSpan) * graphW * state.c);
+    const ry_pixels = Math.max(0.1, (df_min / dopplerSpan) * graphH * state.c);
+    
+    const pxA = getXPixel(Rb_A);
+    const pyA = getYPixel(fd_A);
+    const pxB = getXPixel(Rb_B);
+    const pyB = getYPixel(fd_B);
+    
+    // Target A cell
+    rdCtx.fillStyle = cellFill;
+    rdCtx.strokeStyle = cellStroke;
+    rdCtx.lineWidth = 1.5;
+    rdCtx.setLineDash([4, 2]);
+    rdCtx.beginPath();
+    rdCtx.ellipse(pxA, pyA, rx_pixels, ry_pixels, 0, 0, Math.PI * 2);
+    rdCtx.fill();
+    rdCtx.stroke();
+    
+    // Target B cell
+    rdCtx.beginPath();
+    rdCtx.ellipse(pxB, pyB, rx_pixels, ry_pixels, 0, 0, Math.PI * 2);
+    rdCtx.fill();
+    rdCtx.stroke();
+    rdCtx.setLineDash([]);
+    
+    // Connect separation line
+    rdCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    rdCtx.lineWidth = 1;
+    rdCtx.setLineDash([2, 3]);
+    rdCtx.beginPath();
+    rdCtx.moveTo(pxA, pyA);
+    rdCtx.lineTo(pxB, pyB);
+    rdCtx.stroke();
+    rdCtx.setLineDash([]);
+    
+    // Draw Targets
+    rdCtx.shadowBlur = 8;
+    rdCtx.shadowColor = '#00F0FF';
+    rdCtx.fillStyle = '#00F0FF';
+    rdCtx.beginPath();
+    rdCtx.arc(pxA, pyA, 4.5, 0, Math.PI * 2);
+    rdCtx.fill();
+    
+    rdCtx.shadowColor = '#c084fc';
+    rdCtx.fillStyle = '#c084fc';
+    rdCtx.beginPath();
+    rdCtx.arc(pxB, pyB, 4.5, 0, Math.PI * 2);
+    rdCtx.fill();
+    rdCtx.shadowBlur = 0;
+    
+    // Label targets
+    rdCtx.fillStyle = '#FFF';
+    rdCtx.font = 'bold 9px Inter';
+    rdCtx.textAlign = 'left';
+    rdCtx.fillText(' Target A', pxA + 6, pyA - 4);
+    rdCtx.textAlign = 'right';
+    rdCtx.fillText('Target B ', pxB - 6, pyB + 7);
+    
+    rdCtx.restore(); // end clip
+    
+    // Update labels
+    document.getElementById('rd-val-dr').textContent = `${Math.abs(deltaRb).toFixed(1)} m (Res: ${dR_min} m)`;
+    document.getElementById('rd-val-df').textContent = `${Math.abs(deltafd).toFixed(1)} Hz (Res: ${df_min} Hz)`;
+    
+    const exactText = isExactResolved ? 'RESOLVED' : 'UNRESOLVED';
+    const gradText = state.isCurrentResolved ? 'RESOLVED' : 'UNRESOLVED';
+    const matchText = exactText === gradText ? 'MATCH' : 'MISMATCH';
+    const matchColor = exactText === gradText ? '#10B981' : '#F59E0B';
+    
+    const sepSpan = document.getElementById('rd-val-sep');
+    if (sepSpan) {
+        sepSpan.innerHTML = `<span style="color: ${isExactResolved ? '#10B981' : '#EF4444'}; font-weight: bold;">${exactText}</span> ` +
+                           `<span style="color: var(--text-muted);">vs</span> ` +
+                           `<span style="color: ${state.isCurrentResolved ? '#10B981' : '#EF4444'}; font-weight: bold;">${gradText}</span> ` +
+                           `<span style="color: ${matchColor}; font-weight: bold; margin-left: 8px;">[${matchText}]</span>`;
+    }
+}
+
 // Master computation and render call
 function calculateAndRender() {
     const state = computeState();
     drawGeometry(state);
+    drawRangeDopplerMap(state);
     updateCharts(state);
     updateUI(state);
 }
